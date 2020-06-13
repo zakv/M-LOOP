@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+import os
 import time
 import base64
 from distutils.version import LooseVersion
@@ -38,6 +39,13 @@ class SingleNeuralNet():
         keep_prob: The dropoout keep probability.
         regularisation_coefficient: The regularisation coefficient.
         losses_list: A list to which this object will append training losses.
+        learner_archive_dir (Optional str): The path to a directory in which to
+            save the neural net. If set to None, then the default value of
+            archive_foldername in utilities.py will be used. Default None.
+        start_datetime (Optional datetime.datetime): The timestamp to use in the
+            filenames when saving the neural nets. If set to None, then the
+            time at which the neural net is saved will be used as the timestamp.
+            Default KNone.
     '''
 
     def __init__(self,
@@ -48,19 +56,22 @@ class SingleNeuralNet():
                  batch_size,
                  keep_prob,
                  regularisation_coefficient,
-                 losses_list):
+                 losses_list,
+                 learner_archive_dir=None,
+                 start_datetime=None):
         self.log = logging.getLogger(__name__)
         start = time.time()
 
-        self.save_archive_filename = (
-                mlu.archive_foldername
-                + "neural_net_archive_"
-                + mlu.datetime_to_string(datetime.datetime.now())
-                + "_"
-                # We include 6 random bytes for deduplication in case multiple nets
-                # are created at the same time.
-                + base64.urlsafe_b64encode(nr.bytes(6)).decode()
-                + ".ckpt")
+        if learner_archive_dir is None:
+            learner_archive_dir = mlu.archive_foldername
+        filename_suffix = mlu.generate_filename_suffix(
+            'ckpt',
+            file_datetime=start_datetime,
+            random_bytes=True)
+        filename = 'neural_net_archive' + filename_suffix
+        self.start_datetime = start_datetime
+        self.learner_archive_dir = learner_archive_dir
+        self.save_archive_filename = os.path.join(learner_archive_dir, filename)
 
         self.log.info("Constructing net")
         self.graph = tf.Graph()
@@ -159,12 +170,50 @@ class SingleNeuralNet():
         '''
         self.tf_session.run(self.initialiser)
 
-    def load(self, archive):
+    def load(self, archive, extra_search_dirs=None):
         '''
         Imports the net from an archive dictionary. You must call exactly one of this and init() before calling any other methods.
+        
+        Args:
+            archive (dict): An archive dictionary containg the data from a
+                neural net learner archive, typically created using
+                get_dict_from_file() from utilities.py.
+            extra_search_dirs (Optional list of str): If the neural net archive
+                is not in at the location sepcified for it in the archive
+                dictionary, then the directories in extra_search_dirs will be
+                checked for a file of the saved name. If found, that file will
+                be used. If set to None, no other directories will be checked.
+                Default None.
         '''
         self.log.info("Loading neural network")
-        self.saver.restore(self.tf_session, "./" + str(archive['saver_path']))
+        saver_path = str(archive['saver_path'])
+        filename = os.path.basename(saver_path)
+        searching = True
+        try:
+            # Check if the neural net archive exists at the location specified
+            # in the passed archive dictionary.
+            self.saver.restore(self.tf_session, os.path.join('.', saver_path))
+            searching = False
+        except ValueError:
+            # Check if a neural net archive with the same name exists in
+            # any other given paths.
+            if extra_search_dirs:
+                j = 0
+                j_max = len(extra_search_dirs)
+                while searching and j < j_max:
+                    search_dir = extra_search_dirs[j]
+                    full_path = os.path.join(search_dir, filename)
+                    try:
+                        self.saver.restore(self.tf_session, full_path)
+                        searching = False
+                    except ValueError:
+                        j += 1
+                    
+        # Throw an error if the file wasn't found.
+        if searching:
+            message = "Could not find neural net archive {filename}.".format(filename=filename)
+            self.log.error(message)
+            raise ValueError(message)
 
     def save(self):
         '''
@@ -317,10 +366,10 @@ class SampledNeuralNet():
         for n in self.nets:
             n.init()
 
-    def load(self, archive):
+    def load(self, archive, extra_search_dirs=None):
         for i, n in enumerate(self.nets):
             #n.load(archive[str(i)])
-            n.load(archive)
+            n.load(archive, extra_search_dirs=extra_search_dirs)
 
     def save(self):
         return self.nets[0].save()
@@ -382,11 +431,20 @@ class NeuralNet():
     Args:
         num_params (int): The number of params.
         fit_hyperparameters (bool): Whether to try to fit the hyperparameters to the data.
+        learner_archive_dir (Optional str): The path to a directory in which to
+            save the neural nets. If set to None, then the default value for the
+            SingleNeuralNet class will be used. Default None.
+        start_datetime (Optional datetime.datetime): The timestamp to use in the
+            filenames when saving the neural nets. If set to None, then the
+            default value for the SingleNeuralNet class will be used. Default
+            None.
     '''
 
     def __init__(self,
                  num_params = None,
-                 fit_hyperparameters = False):
+                 fit_hyperparameters = False,
+                 learner_archive_dir = None,
+                 start_datetime = None):
 
         self.log = logging.getLogger(__name__)
         self.log.info('Initialising neural network impl')
@@ -397,6 +455,8 @@ class NeuralNet():
         # Constants.
         self.num_params = num_params
         self.fit_hyperparameters = fit_hyperparameters
+        self.learner_archive_dir = learner_archive_dir
+        self.start_datetime = start_datetime
 
         self.initial_epochs = 100
         self.subsequent_epochs = 20
@@ -434,7 +494,9 @@ class NeuralNet():
                     16, # batch_size
                     1., # keep_prob
                     reg,
-                    self.losses_list)
+                    self.losses_list,
+                    learner_archive_dir=self.learner_archive_dir,
+                    start_datetime=self.start_datetime)
         return SampledNeuralNet(creator, 1)
 
     def _fit_scaler(self):
@@ -500,13 +562,24 @@ class NeuralNet():
         self.net = self._make_net(self.last_net_reg)
         self.net.init()
 
-    def load(self, archive):
+    def load(self, archive, extra_search_dirs=None):
         '''
         Imports the net from an archive dictionary. You must call exactly one of this and init()
         before calling any other methods.
 
         You must only load a net from an archive if that archive corresponds to a net with the same
         constructor parameters.
+        
+        Args:
+            archive (dict): An archive dictionary containg the data from a
+                neural net learner archive, typically created using
+                get_dict_from_file() from utilities.py.
+            extra_search_dirs (Optional list of str): If the neural net archive
+                is not in at the location sepcified for it in the archive
+                dictionary, then the directories in extra_search_dirs will be
+                checked for a file of the saved name. If found, that file will
+                be used. If set to None, no other directories will be checked.
+                Default None.
         '''
         if not self.net is None:
             self.log.error("Called load() when net already initialised/loaded")
@@ -522,7 +595,7 @@ class NeuralNet():
             self._fit_scaler()
 
         self.net = self._make_net(self.last_net_reg)
-        self.net.load(dict(archive['net']))
+        self.net.load(dict(archive['net']), extra_search_dirs=extra_search_dirs)
 
     def save(self):
         '''
