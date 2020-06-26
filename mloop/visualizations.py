@@ -1306,6 +1306,7 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
         global figure_counter
         figure_counter += 1
         fig = plt.figure(figure_counter)
+        from mpl_toolkits.mplot3d import Axes3D
         ax = fig.add_subplot(111, projection='3d')
 
         points = 50
@@ -1313,7 +1314,6 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
         params = [(x,y) for x in param_set[0] for y in param_set[1]]
         costs = self.predict_costs_from_param_array(params)
         ax.scatter([param[0] for param in params], [param[1] for param in params], costs)
-        ax.set_zlim(top=500,bottom=0)
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('cost')
@@ -1344,14 +1344,27 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
 
     def plot_losses(self):
         '''
-        Produce a figure of the loss as a function of training run.
+        Produce a figure of the loss as a function of training run for each net.
         '''
         global figure_counter
         figure_counter += 1
         fig = plt.figure(figure_counter)
 
-        losses = self.get_losses()
-        plt.scatter(range(len(losses)), losses)
-        plt.xlabel("Run")
+        all_losses = self.get_losses()
+        
+        # Generate set of distinct colors for plotting.
+        num_nets = len(all_losses)
+        net_colors = _color_list_from_num_of_params(num_nets)
+        
+        artists=[]
+        legend_labels=[]
+        for ind, losses in enumerate(all_losses):
+            color = net_colors[ind]
+            plt.scatter(range(len(losses)), losses, color=color)
+            artists.append(plt.Line2D((0,1),(0,0), color=color,marker='o',linestyle=''))
+            legend_labels.append('Net {net_index}'.format(net_index=ind))
+
+        plt.xlabel("Training Run")
         plt.ylabel("Training cost")
         plt.title('Loss vs training run.')
+        plt.legend(artists, legend_labels, loc=legend_loc)
