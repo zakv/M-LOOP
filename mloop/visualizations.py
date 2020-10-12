@@ -787,7 +787,6 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
         self.has_trust_region = bool(np.array(self.training_dict['has_trust_region']))
         self.trust_region = np.squeeze(np.array(self.training_dict['trust_region'], dtype=float))
         
-        self.create_gaussian_process()
         self.fit_gaussian_process()
         
         self.param_numbers = np.arange(self.num_params)
@@ -1068,7 +1067,12 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
     def plot_noise_level_vs_run(self):
         '''
         This method plots the fitted noise level as a function of run number.
-        
+
+        The noise_level approximates the variance of values that would be
+        measured if the cost was repeatedly measured for the same set of
+        parameters. Note that this is the variance in those costs; not the
+        standard deviation.
+
         This plot is only relevant to optimizations for which cost_has_noise is
         True. If cost_has_noise is False then this method does nothing and
         silently returns.
