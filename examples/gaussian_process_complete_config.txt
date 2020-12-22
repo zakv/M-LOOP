@@ -12,7 +12,8 @@ min_boundary = [-10., -10.]            #minimum boundary
 max_boundary = [10., 10.]              #maximum boundary
 param_names = ['a', 'b']               #names for parameters
 length_scale = [1.0]                   #initial lengths scales for GP
-length_scale_bounds = [-1e5, 1e5]      #limits on values fit for length_scale
+length_scale_bounds = [1e-5, 1e5]      #limits on values fit for length_scale
+minimum_uncertainty = 1e-8             #minimum uncertainty of cost, required to avoid fitting errors
 cost_has_noise = True                  #whether cost function has noise
 noise_level = 0.1                      #initial noise level estimate, cost's variance (standard deviation squared)
 noise_level_bounds = [1e-5, 1e5]       #limits on values fit for noise_level
@@ -30,5 +31,6 @@ training_type = 'random'               #training type can be random, differentia
 first_params = [1.9, -1.0]             #first parameters to try in initial training
 gp_training_filename = None            #filename for training from previous experiment
 gp_training_file_type = 'pkl'          #training data file type
+gp_training_override_kwargs = False    #whether to override user-supplied keyword options with values set in training archive.
 
 #if you use nelder_mead for the initial training source see the CompleteNelderMeadConfig.txt for options. 

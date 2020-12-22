@@ -11,10 +11,12 @@ import numpy as np
 import logging
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import warnings
 
 figure_counter = 0
 cmap = plt.get_cmap('hsv')
 run_label = 'Run number'
+fit_label = 'Fit number'
 cost_label = 'Cost'
 generation_label = 'Generation number'
 scale_param_label = 'Min (0) to max (1) parameters'
@@ -27,12 +29,12 @@ legend_loc = _DEFAULT_LEGEND_LOC
 def set_legend_location(loc=None):
     '''
     Set the location of the legend in future figures.
-    
+
     Note that this function doesn't change the location of legends in existing
     figures. It only changes where legends will appear in figures generated
     after the call to this function. If called without arguments, the legend
     location for future figures will revert to its default value.
-    
+
     Keyword Args:
         loc (Optional str, int, or pair of floats): The value to use for loc in
             the calls to matplotlib's legend(). Can be e.g. 2, 'upper right',
@@ -43,7 +45,7 @@ def set_legend_location(loc=None):
     # Set default value for loc if necessary.
     if loc is None:
         loc = _DEFAULT_LEGEND_LOC
-    
+
     # Update the global used for setting the legend location.
     global legend_loc
     legend_loc = loc
@@ -53,10 +55,10 @@ def show_all_default_visualizations(controller,
                                     max_parameters_per_plot=None):
     '''
     Plots all visualizations available for a controller, and it's internal learners.
-    
+
     Args:
         controller (Controller): The controller to extract plots from
-        
+
     Keyword Args:
         show_plots (Optional, bool): Determine whether to run plt.show() at the
             end or not. For debugging. Default True.
@@ -75,7 +77,7 @@ def show_all_default_visualizations(controller,
         controller.total_archive_filename,
         max_parameters_per_plot=max_parameters_per_plot,
     )
-    
+
     # For machine learning controllers, the controller.learner is actually the
     # learner for the trainer while controller.ml_learner is the machine
     # learning controller. For other controllers, controller.learner is the
@@ -84,14 +86,14 @@ def show_all_default_visualizations(controller,
         learner_archive_filename = controller.ml_learner.total_archive_filename
     except AttributeError:
         learner_archive_filename = controller.learner.total_archive_filename
-    
+
     log.debug('Creating learner visualizations.')
     create_learner_visualizations(
         learner_archive_filename,
         max_parameters_per_plot=max_parameters_per_plot,
     )
-        
-    log.info('Showing visualizations, close all to end MLOOP.')
+
+    log.info('Showing visualizations, close all to end M-LOOP.')
     if show_plots:
         plt.show()
 
@@ -105,13 +107,13 @@ def show_all_default_visualizations_from_archive(controller_filename,
                                                  learner_visualizer_init_kwargs=None):
     '''
     Plots all visualizations available for a controller and its learner from their archives.
-    
+
     Args:
-        controller_filename (str): The filename, inlcuding path, of the
+        controller_filename (str): The filename, including path, of the
             controller archive.
-        learner_filename (str): The filename, inlcuding path, of the learner
+        learner_filename (str): The filename, including path, of the learner
             archive.
-        
+
     Keyword Args:
         controller_type (str): The value of controller_type type used in the
             optimization corresponding to the learner learner archive, e.g.
@@ -119,7 +121,7 @@ def show_all_default_visualizations_from_archive(controller_filename,
             set to None then controller_type will be determined automatically.
             Default None.
         show_plots (bool): Determine whether to run plt.show() at the end or
-            not. For debugging. Default True. 
+            not. For debugging. Default True.
         max_parameters_per_plot (Optional [int]): The maximum number of
             parameters to include in plots that display the values of
             parameters. If the number of parameters is larger than
@@ -143,22 +145,22 @@ def show_all_default_visualizations_from_archive(controller_filename,
     # Set default value for controller_visualization_kwargs if necessary.
     if controller_visualization_kwargs is None:
         controller_visualization_kwargs = {}
-    
+
     # Update controller_visualization_kwargs with max_parameters_per_plot if
     # necessary.
     if 'max_parameters_per_plot' not in controller_visualization_kwargs:
         controller_visualization_kwargs['max_parameters_per_plot'] = max_parameters_per_plot
-    
+
     log = logging.getLogger(__name__)
     configure_plots()
-    
+
     # Create visualizations for the controller archive.
     log.debug('Creating controller visualizations.')
     create_controller_visualizations(
         controller_filename,
         **controller_visualization_kwargs,
     )
-    
+
     # Create visualizations for the learner archive.
     create_learner_visualizations(
         learner_filename,
@@ -167,17 +169,17 @@ def show_all_default_visualizations_from_archive(controller_filename,
         learner_visualizer_init_kwargs=learner_visualizer_init_kwargs,
     )
 
-    log.info('Showing visualizations, close all to end MLOOP.')
+    log.info('Showing visualizations, close all to end M-LOOP.')
     if show_plots:
         plt.show()
 
 def create_learner_visualizer_from_archive(filename, controller_type=None, **kwargs):
     '''
     Create an instance of the appropriate visualizer class for a learner archive.
-    
+
     Args:
         filename (String): Filename of the learner archive.
-    
+
     Keyword Args:
         controller_type (String): The type of controller used during the
             optimization that created the provided learner archive. Options
@@ -194,7 +196,7 @@ def create_learner_visualizer_from_archive(filename, controller_type=None, **kwa
     # Automatically determine controller_type if necessary.
     if controller_type is None:
         controller_type = mlu.get_controller_type_from_learner_archive(filename)
-        
+
     # Create an instance of the appropriate visualizer class for the archive.
     log = logging.getLogger(__name__)
     if controller_type == 'neural_net':
@@ -211,7 +213,7 @@ def create_learner_visualizer_from_archive(filename, controller_type=None, **kwa
                    'for type: {type_}.').format(type_=controller_type)
         log.error(message)
         raise ValueError(message)
-    
+
     return visualizer
 
 def create_learner_visualizations(filename,
@@ -220,10 +222,10 @@ def create_learner_visualizations(filename,
                                   learner_visualizer_init_kwargs=None):
     '''
     Runs the plots for a learner archive file.
-    
+
     Args:
-        filename (str): Filename for the learner archive. 
-    
+        filename (str): Filename for the learner archive.
+
     Keyword Args:
         max_parameters_per_plot (Optional [int]): The maximum number of
             parameters to include in plots that display the values of
@@ -246,12 +248,12 @@ def create_learner_visualizations(filename,
         learner_visualization_kwargs = {}
     if learner_visualizer_init_kwargs is None:
         learner_visualizer_init_kwargs = {}
-        
+
     # Update controller_visualization_kwargs with max_parameters_per_plot if
     # necessary.
     if 'max_parameters_per_plot' not in learner_visualization_kwargs:
         learner_visualization_kwargs['max_parameters_per_plot'] = max_parameters_per_plot
-    
+
     # Create a visualizer and have it make the plots.
     visualizer = create_learner_visualizer_from_archive(
         filename,
@@ -261,14 +263,14 @@ def create_learner_visualizations(filename,
 
 def _color_from_controller_name(controller_name):
     '''
-    Gives a color (as a number betweeen zero an one) corresponding to each controller name string.
+    Gives a color (as a number between zero an one) corresponding to each controller name string.
     '''
     global cmap
     return cmap(float(mlc.controller_dict[controller_name])/float(mlc.number_of_controllers))
 
 def _color_list_from_num_of_params(num_of_params):
     '''
-    Gives a list of colors based on the number of parameters. 
+    Gives a list of colors based on the number of parameters.
     '''
     global cmap
     return [cmap(float(x)/num_of_params) for x in range(num_of_params)]
@@ -276,7 +278,7 @@ def _color_list_from_num_of_params(num_of_params):
 def _ensure_parameter_subset_valid(visualizer, parameter_subset):
     '''
     Make sure indices in parameter_subset are acceptable.
-    
+
     Args:
         visualizer (ControllerVisualizer-like): An instance of one of the
             visualization classes defined in this module, which should have the
@@ -305,16 +307,16 @@ def configure_plots():
     mpl.rcParams['legend.numpoints'] = 1
     mpl.rcParams['legend.scatterpoints'] = 1
     mpl.rcParams['legend.fontsize']= 'medium'
-    
+
 def create_controller_visualizations(filename,
                                     file_type=None,
                                     **kwargs):
     '''
     Runs the plots for a controller file.
-    
+
     Args:
         filename (String): Filename of the controller archive.
-    
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
@@ -327,23 +329,29 @@ def create_controller_visualizations(filename,
 
 class ControllerVisualizer():
     '''
-    ControllerVisualizer creates figures from a Controller Archive. 
-    
+    ControllerVisualizer creates figures from a Controller Archive.
+
+    Note that the data from the training archive, if one was provided to the
+    learner at the beginning of the optimization, is NOT included in the
+    controller archive generated during the optimization. Therefore any data
+    from the training archive is not included in the plots generated by this
+    class. This is in contrast to some of the learner visualizer classes.
+
     Args:
         filename (String): Filename of the controller archive.
-    
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
             extension in filename. Default None.
-    
+
     '''
     def __init__(self, filename,
                  file_type=None,
                  **kwargs):
-        
+
         self.log = logging.getLogger(__name__)
-        
+
         self.filename = str(filename)
         # Automatically determine file_type if necessary.
         if file_type is None:
@@ -352,12 +360,12 @@ class ControllerVisualizer():
         if not mlu.check_file_type_supported(self.file_type):
             self.log.error('File type not supported: ' + repr(self.file_type))
         controller_dict = mlu.get_dict_from_file(self.filename, self.file_type)
-            
+
         self.archive_type = controller_dict['archive_type']
         if 'archive_type' in controller_dict and not (controller_dict['archive_type'] == 'controller'):
             self.log.error('The archive appears to be the wrong type.')
             raise ValueError
-        
+
         self.num_in_costs = int(controller_dict['num_in_costs'])
         self.num_out_params = int(controller_dict['num_out_params'])
         self.out_params = np.array(controller_dict['out_params'])
@@ -370,20 +378,20 @@ class ControllerVisualizer():
         self.min_boundary = np.squeeze(np.array(controller_dict['min_boundary']))
         self.max_boundary = np.squeeze(np.array(controller_dict['max_boundary']))
         self.param_names = mlu._param_names_from_file_dict(controller_dict)
-        
+
         if np.all(np.isfinite(self.min_boundary)) and np.all(np.isfinite(self.max_boundary)):
             self.finite_flag = True
             self.param_scaler = lambda p: (p-self.min_boundary)/(self.max_boundary - self.min_boundary)
             self.scaled_params = np.array([self.param_scaler(self.out_params[ind,:]) for ind in range(self.num_out_params)])
         else:
             self.finite_flag = False
-        
+
         self.unique_types = set(self.out_type)
         self.cost_colors = [_color_from_controller_name(x) for x in self.out_type]
         self.in_numbers = np.arange(1,self.num_in_costs+1)
         self.out_numbers = np.arange(1,self.num_out_params+1)
         self.param_numbers = np.arange(self.num_params)
-    
+
     def create_visualizations(self,
                               plot_cost_vs_run=True,
                               plot_parameters_vs_run=True,
@@ -391,14 +399,14 @@ class ControllerVisualizer():
                               max_parameters_per_plot=None):
         '''
         Runs the plots for a controller file.
-        
+
         Keyword Args:
             plot_cost_vs_run (Optional [bool]): If True plot cost versus run
-                number, else do not. Default True. 
+                number, else do not. Default True.
             plot_parameters_vs_run (Optional [bool]): If True plot parameters
-                versus run number, else do not. Default True. 
+                versus run number, else do not. Default True.
             plot_parameters_vs_cost (Optional [bool]): If True plot parameters
-                versus cost number, else do not. Default True. 
+                versus cost number, else do not. Default True.
             max_parameters_per_plot (Optional [int]): The maximum number of
                 parameters to include in plots that display the values of
                 parameters. If the number of parameters is larger than
@@ -411,26 +419,29 @@ class ControllerVisualizer():
             self.param_numbers,
             max_parameters_per_plot,
         )
-        
+
         if plot_cost_vs_run:
             self.plot_cost_vs_run()
-            
+
         if plot_parameters_vs_run:
             for parameter_chunk in parameter_chunks:
                 self.plot_parameters_vs_run(parameter_subset=parameter_chunk)
-                
+
         if plot_parameters_vs_cost:
             for parameter_chunk in parameter_chunks:
                 self.plot_parameters_vs_cost(parameter_subset=parameter_chunk)
-        
+
     def plot_cost_vs_run(self):
         '''
         Create a plot of the costs versus run number.
+
+        Note that the data from the training archive, if one was provided to the
+        learner at the beginning of the optimization, will NOT be plotted here.
         '''
         global figure_counter, run_label, cost_label, legend_loc
         figure_counter += 1
         plt.figure(figure_counter)
-        
+
         # Only plot points for which a cost was actually measured. This may not
         # be the case for all parameter sets if the optimization is still in
         # progress, or ended by a keyboard interupt, etc..
@@ -438,7 +449,7 @@ class ControllerVisualizer():
         in_costs = self.in_costs[:self.num_in_costs]
         in_uncers = self.in_uncers[:self.num_in_costs]
         cost_colors = self.cost_colors[:self.num_in_costs]
-        
+
         plt.scatter(in_numbers, in_costs+in_uncers, marker='_', color='k')
         plt.scatter(in_numbers, in_costs-in_uncers, marker='_', color='k')
         plt.scatter(in_numbers, in_costs,marker='o', c=cost_colors, s=5*mpl.rcParams['lines.markersize'])
@@ -449,14 +460,17 @@ class ControllerVisualizer():
         for ut in self.unique_types:
             artists.append(plt.Line2D((0,1),(0,0), color=_color_from_controller_name(ut), marker='o', linestyle=''))
         plt.legend(artists,self.unique_types,loc=legend_loc)
-    
+
     def _ensure_parameter_subset_valid(self, parameter_subset):
         _ensure_parameter_subset_valid(self, parameter_subset)
-        
+
     def plot_parameters_vs_run(self, parameter_subset=None):
         '''
         Create a plot of the parameters versus run number.
-    
+
+        Note that the data from the training archive, if one was provided to the
+        learner at the beginning of the optimization, will NOT be plotted here.
+
         Args:
             parameter_subset (list-like): The indices of parameters to plot. The
                 indices should be 0-based, i.e. the first parameter is
@@ -468,14 +482,14 @@ class ControllerVisualizer():
         # Get default value for parameter_subset if necessary.
         if parameter_subset is None:
             parameter_subset = self.param_numbers
-        
+
         # Make sure that the provided parameter_subset is acceptable.
         self._ensure_parameter_subset_valid(parameter_subset)
-        
+
         # Generate set of distinct colors for plotting.
         num_params = len(parameter_subset)
         param_colors = _color_list_from_num_of_params(num_params)
-            
+
         global figure_counter, run_label, scale_param_label, legend_loc
         figure_counter += 1
         plt.figure(figure_counter)
@@ -493,7 +507,7 @@ class ControllerVisualizer():
                 plt.plot(self.out_numbers,self.out_params[:,param_index],'o',color=color)
                 plt.ylabel(run_label)
         plt.xlabel(run_label)
-        
+
         plt.title('Controller: Parameters vs run number.')
         artists=[]
         for ind in range(num_params):
@@ -504,11 +518,14 @@ class ControllerVisualizer():
             self.param_names,
         )
         plt.legend(artists, legend_labels ,loc=legend_loc)
-        
+
     def plot_parameters_vs_cost(self, parameter_subset=None):
         '''
         Create a plot of the parameters versus run number.
-    
+
+        Note that the data from the training archive, if one was provided to the
+        learner at the beginning of the optimization, will NOT be plotted here.
+
         Args:
             parameter_subset (list-like): The indices of parameters to plot. The
                 indices should be 0-based, i.e. the first parameter is
@@ -522,22 +539,22 @@ class ControllerVisualizer():
         # progress, or ended by a keyboard interupt, etc..
         in_costs = self.in_costs[:self.num_in_costs]
         in_uncers = self.in_uncers[:self.num_in_costs]
-        
+
         # Get default value for parameter_subset if necessary.
         if parameter_subset is None:
             parameter_subset = self.param_numbers
-        
+
         # Make sure that the provided parameter_subset is acceptable.
         self._ensure_parameter_subset_valid(parameter_subset)
-        
+
         # Generate set of distinct colors for plotting.
         num_params = len(parameter_subset)
         param_colors = _color_list_from_num_of_params(num_params)
-        
+
         global figure_counter, run_label, run_label, scale_param_label, legend_loc
         figure_counter += 1
         plt.figure(figure_counter)
-        
+
         if self.finite_flag:
             scaled_params = self.scaled_params[:self.num_in_costs,:]
             for ind in range(num_params):
@@ -574,11 +591,11 @@ def create_differential_evolution_learner_visualizations(filename,
                                                          **kwargs):
     '''
     Runs the plots from a differential evolution learner file.
-    
+
     Args:
         filename (String): Filename for the differential evolution learner
             archive.
-        
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
@@ -591,23 +608,23 @@ def create_differential_evolution_learner_visualizations(filename,
 
 class DifferentialEvolutionVisualizer():
     '''
-    DifferentialEvolutionVisualizer creates figures from a differential evolution archive. 
-    
+    DifferentialEvolutionVisualizer creates figures from a differential evolution archive.
+
     Args:
         filename (String): Filename of the DifferentialEvolutionVisualizer archive.
-    
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
             extension in filename. Default None.
-    
+
     '''
     def __init__(self, filename,
                  file_type=None,
                  **kwargs):
-        
+
         self.log = logging.getLogger(__name__)
-        
+
         self.filename = str(filename)
         # Automatically determine file_type if necessary.
         if file_type is None:
@@ -616,12 +633,12 @@ class DifferentialEvolutionVisualizer():
         if not mlu.check_file_type_supported(self.file_type):
             self.log.error('File type not supported: ' + repr(self.file_type))
         learner_dict = mlu.get_dict_from_file(self.filename, self.file_type)
-        
+
         if 'archive_type' in learner_dict and not (learner_dict['archive_type'] == 'differential_evolution'):
             self.log.error('The archive appears to be the wrong type.' + repr(learner_dict['archive_type']))
             raise ValueError
         self.archive_type = learner_dict['archive_type']
-        
+
         self.num_generations = int(learner_dict['generation_count'])
         self.num_population_members = int(learner_dict['num_population_members'])
         self.num_params = int(learner_dict['num_params'])
@@ -630,28 +647,28 @@ class DifferentialEvolutionVisualizer():
         self.param_names = mlu._param_names_from_file_dict(learner_dict)
         self.params_generations = np.array(learner_dict['params_generations'])
         self.costs_generations = np.array(learner_dict['costs_generations'])
-          
+
         self.finite_flag = True
         self.param_scaler = lambda p: (p-self.min_boundary)/(self.max_boundary - self.min_boundary)
         self.scaled_params_generations = np.array([[self.param_scaler(self.params_generations[inda,indb,:]) for indb in range(self.num_population_members)] for inda in range(self.num_generations)])
         self.param_numbers = np.arange(self.num_params)
-        
+
         self.gen_numbers = np.arange(1,self.num_generations+1)
         self.param_colors = _color_list_from_num_of_params(self.num_params)
         self.gen_plot = np.array([np.full(self.num_population_members, ind, dtype=int) for ind in self.gen_numbers]).flatten()
-        
+
     def create_visualizations(self,
                               plot_params_vs_generations=True,
                               plot_costs_vs_generations=True,
                               max_parameters_per_plot=None):
         '''
         Runs the plots from a differential evolution learner file.
-            
+
         Keyword Args:
             plot_params_generations (Optional [bool]): If True plot parameters
-                vs generations, else do not. Default True. 
+                vs generations, else do not. Default True.
             plot_costs_generations (Optional [bool]): If True plot costs vs
-                generations, else do not. Default True. 
+                generations, else do not. Default True.
             max_parameters_per_plot (Optional [int]): The maximum number of
                 parameters to include in plots that display the values of
                 parameters. If the number of parameters is larger than
@@ -664,16 +681,16 @@ class DifferentialEvolutionVisualizer():
             self.param_numbers,
             max_parameters_per_plot,
         )
-        
+
         if plot_params_vs_generations:
             for parameter_chunk in parameter_chunks:
                 self.plot_params_vs_generations(
                     parameter_subset=parameter_chunk,
                 )
-                
+
         if plot_costs_vs_generations:
             self.plot_costs_vs_generations()
-        
+
     def plot_costs_vs_generations(self):
         '''
         Create a plot of the costs versus run number.
@@ -681,7 +698,7 @@ class DifferentialEvolutionVisualizer():
         if self.costs_generations.size == 0:
             self.log.warning('Unable to plot DE: costs vs generations as the initial generation did not complete.')
             return
-        
+
         global figure_counter, cost_label, generation_label
         figure_counter += 1
         plt.figure(figure_counter)
@@ -689,14 +706,14 @@ class DifferentialEvolutionVisualizer():
         plt.xlabel(generation_label)
         plt.ylabel(cost_label)
         plt.title('Differential evolution: Cost vs generation number.')
-    
+
     def _ensure_parameter_subset_valid(self, parameter_subset):
         _ensure_parameter_subset_valid(self, parameter_subset)
-        
+
     def plot_params_vs_generations(self, parameter_subset=None):
         '''
         Create a plot of the parameters versus run number.
-    
+
         Args:
             parameter_subset (list-like): The indices of parameters to plot. The
                 indices should be 0-based, i.e. the first parameter is
@@ -708,22 +725,22 @@ class DifferentialEvolutionVisualizer():
         # Get default value for parameter_subset if necessary.
         if parameter_subset is None:
             parameter_subset = self.param_numbers
-        
+
         # Make sure that the provided parameter_subset is acceptable.
         self._ensure_parameter_subset_valid(parameter_subset)
-        
+
         # Generate set of distinct colors for plotting.
         num_params = len(parameter_subset)
         param_colors = _color_list_from_num_of_params(num_params)
-        
+
         if self.params_generations.size == 0:
             self.log.warning('Unable to plot DE: params vs generations as the initial generation did not complete.')
             return
-        
+
         global figure_counter, generation_label, scale_param_label, legend_loc
         figure_counter += 1
         plt.figure(figure_counter)
-        
+
         artists=[]
         for ind in range(num_params):
             param_index = parameter_subset[ind]
@@ -731,25 +748,25 @@ class DifferentialEvolutionVisualizer():
             plt.plot(self.gen_plot,self.params_generations[:,:,param_index].flatten(),marker='o',linestyle='',color=color)
             artists.append(plt.Line2D((0,1),(0,0), color=color,marker='o',linestyle=''))
             plt.ylim((0,1))
-        
-        plt.title('Differential evolution: Params vs generation number.') 
+
+        plt.title('Differential evolution: Params vs generation number.')
         plt.xlabel(generation_label)
-        plt.ylabel(scale_param_label) 
+        plt.ylabel(scale_param_label)
         legend_labels = mlu._generate_legend_labels(
             parameter_subset,
             self.param_names,
         )
         plt.legend(artists, legend_labels ,loc=legend_loc)
-        
+
 def create_gaussian_process_learner_visualizations(filename,
                                                    file_type=None,
                                                    **kwargs):
     '''
     Runs the plots from a gaussian process learner file.
-    
+
     Args:
         filename (String): Filename for the gaussian process learner archive.
-        
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
@@ -759,83 +776,98 @@ def create_gaussian_process_learner_visualizations(filename,
     '''
     visualization = GaussianProcessVisualizer(filename, file_type=file_type)
     visualization.create_visualizations(**kwargs)
-    
+
 class GaussianProcessVisualizer(mll.GaussianProcessLearner):
     '''
     GaussianProcessVisualizer extends of GaussianProcessLearner, designed not to be used as a learner, but to instead post process a GaussianProcessLearner archive file and produce useful data for visualization of the state of the learner. Fixes the Gaussian process hyperparameters to what was last found during the run.
-    
+
+    If a training archive was provided at the start of the optimization as
+    `gp_training_filename` and that training archive was generated by a Gaussian
+    process optimization, then some of its data is saved in the new learner
+    archive generated during the optimization. That implies that some of the
+    data, such as fitted hyperparameter values, from the training archive will
+    be included in the plots generated by this class.
+
     Args:
         filename (String): Filename of the GaussianProcessLearner archive.
-    
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
             extension in filename. Default None.
-      
+
     '''
-    
+
     def __init__(self, filename, file_type=None, **kwargs):
-        
+
         super(GaussianProcessVisualizer, self).__init__(gp_training_filename = filename,
                                                         gp_training_file_type = file_type,
+                                                        gp_training_override_kwargs=True,
                                                         update_hyperparameters = False,
                                                         **kwargs)
-        
+
         self.log = logging.getLogger(__name__)
-        
+        training_dict = self.training_dict
+
+        # Optimization options not loaded by parent class.
+        self.cost_has_noise = bool(training_dict['cost_has_noise'])
         #Trust region
-        self.has_trust_region = bool(np.array(self.training_dict['has_trust_region']))
-        self.trust_region = np.squeeze(np.array(self.training_dict['trust_region'], dtype=float))
-        
+        self.has_trust_region = bool(np.array(training_dict['has_trust_region']))
+        self.trust_region = np.squeeze(np.array(training_dict['trust_region'], dtype=float))
+        # Try to extract options not present in archives from M-LOOP <= 3.1.1
+        if 'length_scale_bounds' in training_dict:
+            self.length_scale_bounds = mlu.safe_cast_to_array(training_dict['length_scale_bounds'])
+        if 'noise_level_bounds' in training_dict:
+            self.noise_level_bounds = mlu.safe_cast_to_array(training_dict['noise_level_bounds'])
+
         self.fit_gaussian_process()
-        
+
         self.param_numbers = np.arange(self.num_params)
         self.log_length_scale_history = np.log10(np.array(self.length_scale_history, dtype=float))
-        self.noise_level_history = np.array(self.noise_level_history) 
-        self.fit_numbers = np.arange(1,self.fit_count+1)
-        
+        self.noise_level_history = np.array(self.noise_level_history)
+
         if np.all(np.isfinite(self.min_boundary)) and np.all(np.isfinite(self.max_boundary)):
             self.finite_flag = True
             self.param_scaler = lambda p: (p-self.min_boundary)/self.diff_boundary
         else:
             self.finite_flag = False
-        
+
         if self.has_trust_region:
             self.scaled_trust_min = self.param_scaler(np.maximum(self.best_params - self.trust_region, self.min_boundary))
             self.scaled_trust_max = self.param_scaler(np.minimum(self.best_params + self.trust_region, self.max_boundary))
-        
+
         # Record value of update_hyperparameters used for optimization. Note that
         # self.update_hyperparameters is always set to False here above
         # regardless of its value during the optimization.
-        self.used_update_hyperparameters = self.training_dict['update_hyperparameters']
-        
+        self.used_update_hyperparameters = training_dict['update_hyperparameters']
+
     def run(self):
         '''
         Overides the GaussianProcessLearner multiprocessor run routine. Does nothing but makes a warning.
         '''
         self.log.warning('You should not have executed start() from the GaussianProcessVisualizer. It is not intended to be used as a independent process. Ending.')
-    
-      
+
+
     def return_cross_sections(self, points=100, cross_section_center=None):
         '''
         Finds the predicted global minima, then returns a list of vectors of parameters values, costs and uncertainties, corresponding to the 1D cross sections along each parameter axis through the predicted global minima.
-        
+
         Keyword Args:
-            points (int): the number of points to sample along each cross section. Default value is 100. 
-            cross_section_center (array): parameter array where the centre of the cross section should be taken. If None, the parameters for the best returned cost are used.  
-        
+            points (int): the number of points to sample along each cross section. Default value is 100.
+            cross_section_center (array): parameter array where the centre of the cross section should be taken. If None, the parameters for the best returned cost are used.
+
         Returns:
             a tuple (cross_arrays, cost_arrays, uncer_arrays)
             cross_parameter_arrays (list): a list of arrays for each cross section, with the values of the varied parameter going from the minimum to maximum value.
-            cost_arrays (list): a list of arrays for the costs evaluated along each cross section about the minimum. 
-            uncertainty_arrays (list): a list of uncertainties 
-            
+            cost_arrays (list): a list of arrays for the costs evaluated along each cross section about the minimum.
+            uncertainty_arrays (list): a list of uncertainties
+
         '''
         points = int(points)
         if points <= 0:
             self.log.error('Points provided must be larger than zero:' + repr(points))
             raise ValueError
-        
+
         if cross_section_center is None:
             cross_section_center = self.best_params
         else:
@@ -843,7 +875,7 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
             if not self.check_in_boundary(cross_section_center):
                 self.log.error('cross_section_center not in boundaries:' + repr(cross_section_center))
                 raise ValueError
-        
+
         cross_parameter_arrays = [ np.linspace(min_p, max_p, points) for (min_p,max_p) in zip(self.min_boundary,self.max_boundary)]
         scaled_cost_arrays = []
         scaled_uncertainty_arrays = []
@@ -856,62 +888,79 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
         cross_parameter_arrays = np.array(cross_parameter_arrays)
         cost_arrays = self.cost_scaler.inverse_transform(np.array(scaled_cost_arrays))
         uncertainty_arrays = np.array(scaled_uncertainty_arrays) * self.cost_scaler.scale_
-        return (cross_parameter_arrays,cost_arrays,uncertainty_arrays) 
-    
+        return (cross_parameter_arrays,cost_arrays,uncertainty_arrays)
+
     def create_visualizations(self,
                               plot_cross_sections=True,
-                              plot_hyperparameters_vs_run=True,
-                              plot_noise_level_vs_run=True,
-                              max_parameters_per_plot=None):
+                              plot_hyperparameters_vs_fit=True,
+                              plot_noise_level_vs_fit=True,
+                              max_parameters_per_plot=None,
+                              **kwargs):
         '''
         Runs the plots from a gaussian process learner file.
-            
+
         Keyword Args:
-            plot_cross_sections (Optional [bool]): If True plot predicted
-                landscape cross sections, else do not. Default True. 
-            plot_hyperparameters_vs_run (Optional [bool]): If True plot fitted
-                hyperparameters as a function of run number, else do not.
-                Default True.
-            plot_noise_level_vs_run (Optional [bool]): If True plot the fitted
-                noise level as a function of run number, else do not. If there
-                is no fitted noise level (i.e. cost_has_noise was set to False),
-                then this plot will not be made regardless of the value passed
-                for plot_noise_level_vs_run. Default True.
+            plot_cross_sections (Optional [bool]): If `True` plot predicted
+                landscape cross sections, else do not. Default `True`.
+            plot_hyperparameters_vs_fit (Optional [bool]): If `True` plot fitted
+                hyperparameters as a function of fit number, else do not.
+                Default `True`.
+            plot_noise_level_vs_fit (Optional [bool]): If `True` plot the fitted
+                noise level as a function of fit number, else do not. If there
+                is no fitted noise level (i.e. `cost_has_noise` was set to
+                `False`), then this plot will not be made regardless of the
+                value passed for `plot_noise_level_vs_fit`. Default `True`.
             max_parameters_per_plot (Optional [int]): The maximum number of
                 parameters to include in plots that display the values of
                 parameters. If the number of parameters is larger than
-                parameters_per_plot, then the parameters will be divided into
+                `parameters_per_plot`, then the parameters will be divided into
                 groups and each group will be plotted in its own figure. If set
-                to None, then all parameters will be included in the same plot
-                regardless of how many there are. Default None.
+                to `None`, then all parameters will be included in the same plot
+                regardless of how many there are. Default `None`.
         '''
+        # Check for deprecated argument names.
+        if 'plot_hyperparameters_vs_run' in kwargs:
+            msg = ("create_visualizations() argument "
+                   "plot_hyperparameters_vs_run is deprecated; "
+                   "use plot_hyperparameters_vs_fit instead.")
+            warnings.warn(msg)
+            plot_hyperparameters_vs_fit = kwargs['plot_hyperparameters_vs_run']
+        if 'plot_noise_level_vs_run' in kwargs:
+            msg = ("create_visualizations() argument "
+                   "plot_noise_level_vs_run is deprecated; "
+                   "use plot_noise_level_vs_fit instead.")
+            warnings.warn(msg)
+            plot_noise_level_vs_fit = kwargs['plot_noise_level_vs_run']
+
+        # Determine which parameters belong on plots together.
         parameter_chunks = mlu.chunk_list(
             self.param_numbers,
             max_parameters_per_plot,
         )
-        
+
+        # Generate the requested plots.
         if plot_cross_sections:
             for parameter_chunk in parameter_chunks:
                 self.plot_cross_sections(
                     parameter_subset=parameter_chunk,
                 )
-            
-        if plot_hyperparameters_vs_run:
+
+        if plot_hyperparameters_vs_fit:
             for parameter_chunk in parameter_chunks:
-                self.plot_hyperparameters_vs_run(
+                self.plot_hyperparameters_vs_fit(
                     parameter_subset=parameter_chunk,
                 )
-        
-        if plot_noise_level_vs_run:
-            self.plot_noise_level_vs_run()
-    
+
+        if plot_noise_level_vs_fit:
+            self.plot_noise_level_vs_fit()
+
     def _ensure_parameter_subset_valid(self, parameter_subset):
         _ensure_parameter_subset_valid(self, parameter_subset)
-    
+
     def plot_cross_sections(self, parameter_subset=None):
         '''
         Produce a figure of the cross section about best cost and parameters.
-    
+
         Args:
             parameter_subset (list-like): The indices of parameters to plot. The
                 indices should be 0-based, i.e. the first parameter is
@@ -923,14 +972,14 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
         # Get default value for parameter_subset if necessary.
         if parameter_subset is None:
             parameter_subset = self.param_numbers
-        
+
         # Make sure that the provided parameter_subset is acceptable.
         self._ensure_parameter_subset_valid(parameter_subset)
-        
+
         # Generate set of distinct colors for plotting.
         num_params = len(parameter_subset)
         param_colors = _color_list_from_num_of_params(num_params)
-        
+
         global figure_counter, legend_loc
         figure_counter += 1
         plt.figure(figure_counter)
@@ -963,15 +1012,15 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
             parameter_subset,
             self.param_names,
         )
-        plt.legend(artists, legend_labels ,loc=legend_loc)    
-    
+        plt.legend(artists, legend_labels ,loc=legend_loc)
+
     '''
     Method is currently not supported. Of questionable usefulness. Not yet deleted.
-        
+
     def plot_all_minima_vs_cost(self):
-        
+
         #Produce figure of the all the local minima versus cost.
-        
+
         if not self.has_all_minima:
             self.find_all_minima()
         global figure_counter, legend_loc
@@ -1001,44 +1050,61 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
             artists.append(plt.Line2D((0,1),(0,0), color=self.param_colors[ind],marker='o',linestyle=''))
         plt.legend(artists, [str(x) for x in range(self.num_params)], loc=legend_loc)
     '''
-    
-    def plot_hyperparameters_vs_run(self, parameter_subset=None):
+
+    def plot_hyperparameters_vs_run(self, *args, **kwargs):
         '''
-        Produce a figure of the hyperparameters as a function of run number.
-    
+        Deprecated. Use `plot_hyperparameters_vs_fit()` instead.
+        '''
+        msg = ("plot_hyperparameters_vs_run() is deprecated; "
+               "use plot_hyperparameters_vs_fit() instead.")
+        warnings.warn(msg)
+        self.plot_hyperparameters_vs_fit(*args, **kwargs)
+
+    def plot_hyperparameters_vs_fit(self, parameter_subset=None):
+        '''
+        Produce a figure of the hyperparameters as a function of fit number.
+
+        Only one fit is performed per generation, and multiple parameter sets
+        are run each generation. Therefore the number of fits is generally less
+        than the number of runs.
+
+        The plot generated will include the data from the training archive if
+        one was provided as `gp_training_filename` and the training archive was
+        generated by a Gaussian process optimization.
+
         Args:
             parameter_subset (list-like): The indices of parameters to plot. The
                 indices should be 0-based, i.e. the first parameter is
                 identified with index 0. Generally the values of the indices in
-                parameter_subset should be between 0 and the number of
+                `parameter_subset` should be between 0 and the number of
                 parameters minus one, inclusively. If set to `None`, then all
-                parameters will be plotted. Default None.
+                parameters will be plotted. Default `None`.
         '''
         # Get default value for parameter_subset if necessary.
         if parameter_subset is None:
             parameter_subset = self.param_numbers
-        
+
         # Make sure that the provided parameter_subset is acceptable.
         self._ensure_parameter_subset_valid(parameter_subset)
-        
+
         # Get the indices corresponding to the number of fits. If
         # update_hyperparameters was set to False, then we'll say that there
         # were zero fits of the hyperparameters.
         if self.used_update_hyperparameters:
-            fit_numbers = self.fit_numbers
             log_length_scale_history = self.log_length_scale_history
+            fit_numbers = np.arange(1, len(log_length_scale_history)+1)
         else:
             fit_numbers = [0]
             log_length_scale_history = np.log10(np.array([self.length_scale], dtype=float))
-        
+
         # Generate set of distinct colors for plotting.
         num_params = len(parameter_subset)
         param_colors = _color_list_from_num_of_params(num_params)
-        
-        global figure_counter, run_label, legend_loc, log_length_scale_label
+
+        global figure_counter, fit_label, legend_loc, log_length_scale_label
         figure_counter += 1
         plt.figure(figure_counter)
-        
+
         if type(self.length_scale) is float:
             # First treat the case of an isotropic kernel with one length scale
             # shared by all parameters.
@@ -1053,37 +1119,54 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
                 color = param_colors[ind]
                 plt.plot(fit_numbers, log_length_scale_history[:,param_index],'o',color=color)
                 artists.append(plt.Line2D((0,1),(0,0), color=color,marker='o',linestyle=''))
-                
+
             legend_labels = mlu._generate_legend_labels(
                 parameter_subset,
                 self.param_names,
             )
             plt.legend(artists, legend_labels ,loc=legend_loc)
             plt.title('GP Learner: Log of length scales vs fit number.')
-        
-        plt.xlabel(run_label)
-        plt.ylabel(log_length_scale_label)
-    
-    def plot_noise_level_vs_run(self):
-        '''
-        This method plots the fitted noise level as a function of run number.
 
-        The noise_level approximates the variance of values that would be
-        measured if the cost was repeatedly measured for the same set of
+        plt.xlabel(fit_label)
+        plt.ylabel(log_length_scale_label)
+
+    def plot_noise_level_vs_run(self, *args, **kwargs):
+        '''
+        Deprecated. Use `plot_noise_level_vs_fit()` instead.
+        '''
+        msg = ("plot_noise_level_vs_run() is deprecated; "
+               "use plot_noise_level_vs_fit() instead.")
+        warnings.warn(msg)
+        self.plot_noise_level_vs_fit(*args, **kwargs)
+
+    def plot_noise_level_vs_fit(self):
+        '''
+        This method plots the fitted noise level as a function of fit number.
+
+        The `noise_level` approximates the variance of values that would be
+        measured if the cost were repeatedly measured for the same set of
         parameters. Note that this is the variance in those costs; not the
         standard deviation.
 
-        This plot is only relevant to optimizations for which cost_has_noise is
-        True. If cost_has_noise is False then this method does nothing and
-        silently returns.
+        This plot is only relevant to optimizations for which `cost_has_noise`
+        is `True`. If `cost_has_noise` is `False` then this method does nothing
+        and silently returns.
+
+        Only one fit is performed per generation, and multiple parameter sets
+        are run each generation. Therefore the number of fits is generally less
+        than the number of runs.
+
+        The plot generated will include the data from the training archive if
+        one was provided as `gp_training_filename` and the training archive was
+        generated by a Gaussian process optimization.
         '''
-        # Make plot of noise level vs run number if cost has noise. 
+        # Make plot of noise level vs run number if cost has noise.
         if self.cost_has_noise:
-            global figure_counter, run_label, noise_label
-            
+            global figure_counter, fit_label, noise_label
+
             if self.used_update_hyperparameters:
-                fit_numbers = self.fit_numbers
                 noise_level_history = self.noise_level_history
+                fit_numbers = np.arange(1, len(noise_level_history)+1)
             else:
                 # As in self.plot_hyperparameters_vs_run(), if
                 # update_hyperparameters was set to False, we'll say there were
@@ -1094,19 +1177,19 @@ class GaussianProcessVisualizer(mll.GaussianProcessLearner):
             figure_counter += 1
             plt.figure(figure_counter)
             plt.plot(fit_numbers, noise_level_history,'o',color='k')
-            plt.xlabel(run_label)
+            plt.xlabel(fit_label)
             plt.ylabel(noise_label)
-            plt.title('GP Learner: Noise level vs fit number.')     
-            
+            plt.title('GP Learner: Noise level vs fit number.')
+
 def create_neural_net_learner_visualizations(filename,
                                              file_type=None,
                                              **kwargs):
     '''
     Creates plots from a neural net's learner file.
-    
+
     Args:
         filename (String): Filename for the neural net learner archive.
-        
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
@@ -1117,64 +1200,70 @@ def create_neural_net_learner_visualizations(filename,
     visualization = NeuralNetVisualizer(filename, file_type=file_type)
     visualization.create_visualizations(**kwargs)
 
-            
+
 class NeuralNetVisualizer(mll.NeuralNetLearner):
     '''
-    NeuralNetVisualizer extends of NeuralNetLearner, designed not to be used as a learner, but to instead post process a NeuralNetLearner archive file and produce useful data for visualization of the state of the learner. 
-    
+    NeuralNetVisualizer extends of NeuralNetLearner, designed not to be used as a learner, but to instead post process a NeuralNetLearner archive file and produce useful data for visualization of the state of the learner.
+
     Args:
         filename (String): Filename of the NeuralNetLearner archive.
-    
+
     Keyword Args:
         file_type (String): Can be 'mat' for matlab, 'pkl' for pickle or 'txt'
             for text. If set to None, then the type will be determined from the
             extension in filename. Default None.
     '''
-    
+
     def __init__(self, filename, file_type = None, **kwargs):
-        
-        
-        
+
+
+
         super(NeuralNetVisualizer, self).__init__(nn_training_filename = filename,
                                                   nn_training_file_type = file_type,
                                                   update_hyperparameters = False,
                                                   **kwargs)
-        
+
         self.log = logging.getLogger(__name__)
-        
+        training_dict = self.training_dict
+
+        # Archive data not loaded by parent class
         #Trust region
-        self.has_trust_region = bool(np.array(self.training_dict['has_trust_region']))
-        self.trust_region = np.squeeze(np.array(self.training_dict['trust_region'], dtype=float))
-        
+        self.has_trust_region = bool(np.array(training_dict['has_trust_region']))
+        self.trust_region = np.squeeze(np.array(training_dict['trust_region'], dtype=float))
+        self.nn_training_file_dir = self.training_file_dir
+        self.cost_scaler_init_index = training_dict['cost_scaler_init_index']
+        if not self.cost_scaler_init_index is None:
+            self._init_cost_scaler()
+
         self.import_neural_net()
-        
+
         if np.all(np.isfinite(self.min_boundary)) and np.all(np.isfinite(self.max_boundary)):
             self.finite_flag = True
             self.param_scaler = lambda p: (p-self.min_boundary)/self.diff_boundary
         else:
             self.finite_flag = False
-        
+
         if self.has_trust_region:
             self.scaled_trust_min = self.param_scaler(np.maximum(self.best_params - self.trust_region, self.min_boundary))
             self.scaled_trust_max = self.param_scaler(np.minimum(self.best_params + self.trust_region, self.max_boundary))
-            
+
         self.param_numbers = np.arange(self.num_params)
-        
+
     def run(self):
         '''
         Overides the GaussianProcessLearner multiprocessor run routine. Does nothing but makes a warning.
         '''
         self.log.warning('You should not have executed start() from the GaussianProcessVisualizer. It is not intended to be used as a independent process. Ending.')
-    
+
     def create_visualizations(self,
                               plot_cross_sections=True,
                               max_parameters_per_plot=None):
         '''
         Creates plots from a neural net's learner file.
-            
+
         Keyword Args:
             plot_cross_sections (Optional [bool]): If True plot predicted
-                landscape cross sections, else do not. Default True. 
+                landscape cross sections, else do not. Default True.
             max_parameters_per_plot (Optional [int]): The maximum number of
                 parameters to include in plots that display the values of
                 parameters. If the number of parameters is larger than
@@ -1187,36 +1276,36 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
             self.param_numbers,
             max_parameters_per_plot,
         )
-        
+
         if plot_cross_sections:
             for parameter_chunk in parameter_chunks:
                 self.do_cross_sections(parameter_subset=parameter_chunk)
-                
+
         self.plot_surface()
         self.plot_density_surface()
         self.plot_losses()
-    
-      
+
+
     def return_cross_sections(self, points=100, cross_section_center=None):
         '''
         Finds the predicted global minima, then returns a list of vectors of parameters values, costs and uncertainties, corresponding to the 1D cross sections along each parameter axis through the predicted global minima.
-        
+
         Keyword Args:
-            points (int): the number of points to sample along each cross section. Default value is 100. 
-            cross_section_center (array): parameter array where the centre of the cross section should be taken. If None, the parameters for the best returned cost are used.  
-        
+            points (int): the number of points to sample along each cross section. Default value is 100.
+            cross_section_center (array): parameter array where the centre of the cross section should be taken. If None, the parameters for the best returned cost are used.
+
         Returns:
             a tuple (cross_arrays, cost_arrays, uncer_arrays)
             cross_parameter_arrays (list): a list of arrays for each cross section, with the values of the varied parameter going from the minimum to maximum value.
-            cost_arrays (list): a list of arrays for the costs evaluated along each cross section about the minimum. 
-            uncertainty_arrays (list): a list of uncertainties 
-            
+            cost_arrays (list): a list of arrays for the costs evaluated along each cross section about the minimum.
+            uncertainty_arrays (list): a list of uncertainties
+
         '''
         points = int(points)
         if points <= 0:
             self.log.error('Points provided must be larger than zero:' + repr(points))
             raise ValueError
-        
+
         if cross_section_center is None:
             cross_section_center = self.best_params
         else:
@@ -1224,7 +1313,7 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
             if not self.check_in_boundary(cross_section_center):
                 self.log.error('cross_section_center not in boundaries:' + repr(cross_section_center))
                 raise ValueError
-        
+
         res = []
         for net_index in range(self.num_nets):
             cross_parameter_arrays = [ np.linspace(min_p, max_p, points) for (min_p,max_p) in zip(self.min_boundary,self.max_boundary)]
@@ -1238,14 +1327,14 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
             cost_arrays = self.cost_scaler.inverse_transform(np.array(scaled_cost_arrays))
             res.append((cross_parameter_arrays, cost_arrays))
         return res
-    
+
     def _ensure_parameter_subset_valid(self, parameter_subset):
         _ensure_parameter_subset_valid(self, parameter_subset)
 
     def do_cross_sections(self, parameter_subset=None):
         '''
         Produce a figure of the cross section about best cost and parameters.
-    
+
         Args:
             parameter_subset (list-like): The indices of parameters to plot. The
                 indices should be 0-based, i.e. the first parameter is
@@ -1257,20 +1346,20 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
         # Get default value for parameter_subset if necessary.
         if parameter_subset is None:
             parameter_subset = self.param_numbers
-        
+
         # Make sure that the provided parameter_subset is acceptable.
         self._ensure_parameter_subset_valid(parameter_subset)
-        
+
         # Generate set of distinct colors for plotting.
         num_params = len(parameter_subset)
         param_colors = _color_list_from_num_of_params(num_params)
-        
+
         # Generate labels for legends.
         legend_labels = mlu._generate_legend_labels(
             parameter_subset,
             self.param_names,
         )
-        
+
         points = 100
         rel_params = np.linspace(0,1,points)
         all_cost_arrays = [a for _,a in self.return_cross_sections(points=points)]
@@ -1377,28 +1466,43 @@ class NeuralNetVisualizer(mll.NeuralNetLearner):
 
     def plot_losses(self):
         '''
-        Produce a figure of the loss as a function of training run for each net.
+        Produce a figure of the loss as a function of epoch for each net.
+
+        The loss is the mean-squared fitting error of the neural net plus the
+        regularization loss, which is the regularization coefficient times the
+        mean L2 norm of the neural net weight arrays (without the square root).
+        Note that the fitting error is calculated after normalizing the data, so
+        it is in arbitrary units.
+
+        As the neural nets are fit, the loss is recorded every 10 epochs. The
+        number of epochs per fit varies, and may be different for different
+        nets. The loss will generally increase at the begining of each fit as
+        new data points will have been added.
+
+        Also note that a lower loss isn't always better; a loss that is too low
+        can be a sign of overfitting.
         '''
         global figure_counter
         figure_counter += 1
         fig = plt.figure(figure_counter)
 
         all_losses = self.get_losses()
-        
+
         # Generate set of distinct colors for plotting.
         num_nets = len(all_losses)
         net_colors = _color_list_from_num_of_params(num_nets)
-        
+
         artists=[]
         legend_labels=[]
         for ind, losses in enumerate(all_losses):
             color = net_colors[ind]
-            plt.plot(range(len(losses)), losses, color=color, marker='o', linestyle='')
+            epoch_numbers = 10 * np.arange(len(losses))
+            plt.plot(epoch_numbers, losses, color=color, marker='o', linestyle='')
             artists.append(plt.Line2D((0,1),(0,0), color=color,marker='o',linestyle=''))
             legend_labels.append('Net {net_index}'.format(net_index=ind))
 
         plt.yscale('log')
-        plt.xlabel("Training Run")
-        plt.ylabel("Training cost")
-        plt.title('Loss vs training run.')
+        plt.xlabel("Epoch")
+        plt.ylabel("Fitting Loss")
+        plt.title('Loss vs Epoch')
         plt.legend(artists, legend_labels, loc=legend_loc)
