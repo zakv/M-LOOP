@@ -4,19 +4,13 @@ import math
 import os
 import time
 import base64
-from distutils.version import LooseVersion
 
 import mloop.utilities as mlu
 import numpy as np
 import numpy.random as nr
 import sklearn.preprocessing as skp
-# Import tensorflow with backwards compatability if version is 2.0.0 or newer.
-from tensorflow import __version__ as tf_version
-if LooseVersion(tf_version) < LooseVersion('2.0.0'):
-    import tensorflow as tf
-else:
-    import tensorflow.compat.v1 as tf
-    tf.disable_v2_behavior()
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 
 class SingleNeuralNet():
     '''
@@ -75,7 +69,7 @@ class SingleNeuralNet():
 
         self.log.info("Constructing net")
         self.graph = tf.Graph()
-        self.tf_session = tf.Session(graph=self.graph)
+        self.tf_session = tf.compat.v1.Session(graph=self.graph)
 
         if not len(layer_dims) == len(layer_activations):
             self.log.error('len(layer_dims) != len(layer_activations)')
@@ -92,34 +86,40 @@ class SingleNeuralNet():
 
         with self.graph.as_default():
             ## Inputs
-            self.input_placeholder = tf.placeholder(tf.float32, shape=[None, self.num_params])
-            self.output_placeholder = tf.placeholder(tf.float32, shape=[None, 1])
-            self.keep_prob_placeholder = tf.placeholder_with_default(1., shape=[])
-            self.regularisation_coefficient_placeholder = tf.placeholder_with_default(0., shape=[])
+            self.input_placeholder = tf.compat.v1.placeholder(
+                tf.float32, shape=[None, self.num_params])
+            self.output_placeholder = tf.compat.v1.placeholder(
+                tf.float32, shape=[None, 1])
+            self.keep_prob_placeholder = tf.compat.v1.placeholder_with_default(
+                1., shape=[])
+            self.regularisation_coefficient_placeholder = tf.compat.v1.placeholder_with_default(
+                0., shape=[])
 
             ## Initialise the network
 
             weights = []
             biases = []
 
+            weight_initializer = tf.compat.v1.initializers.he_normal()
+            bias_initializer = tf.compat.v1.random_normal_initializer(stddev=0.5)
+
             # Input + internal nodes
             prev_layer_dim = self.num_params
-            bias_stddev=0.5
             for (i, dim) in enumerate(layer_dims):
                 weights.append(tf.Variable(
-                    tf.random_normal([prev_layer_dim, dim], stddev=1.4/np.sqrt(prev_layer_dim)),
+                    weight_initializer(shape=[prev_layer_dim, dim], dtype=tf.float32),
                     name="weight_"+str(i)))
                 biases.append(tf.Variable(
-                    tf.random_normal([dim], stddev=bias_stddev),
+                    bias_initializer(shape=[dim], dtype=tf.float32),
                     name="bias_"+str(i)))
                 prev_layer_dim = dim
 
             # Output node
             weights.append(tf.Variable(
-                tf.random_normal([prev_layer_dim, 1], stddev=1.4/np.sqrt(prev_layer_dim)),
+                weight_initializer(shape=[prev_layer_dim, 1], dtype=tf.float32),
                 name="weight_out"))
             biases.append(tf.Variable(
-                tf.random_normal([1], stddev=bias_stddev),
+                bias_initializer(shape=[1], dtype=tf.float32),
                 name="bias_out"))
 
             # Get the output var given an input var
@@ -128,7 +128,7 @@ class SingleNeuralNet():
                 for w, b, act in zip(weights[:-1], biases[:-1], layer_activations):
                     prev_h = tf.nn.dropout(
                           act(tf.matmul(prev_h, w) + b),
-                          keep_prob=self.keep_prob_placeholder)
+                          rate=1-self.keep_prob_placeholder)
                 return tf.matmul(prev_h, weights[-1]) + biases[-1]
 
             ## Define tensors for evaluating the output var and gradient on the full input
@@ -141,7 +141,7 @@ class SingleNeuralNet():
             def get_loss_raw(expected, actual):
                 return tf.reduce_mean(tf.reduce_sum(
                     tf.square(expected - actual),
-                    reduction_indices=[1]))
+                    axis=[1]))
 
             # Regularisation component of the loss.
             loss_reg = (self.regularisation_coefficient_placeholder
@@ -153,13 +153,13 @@ class SingleNeuralNet():
             self.loss_total = self.loss_raw + loss_reg
 
             ## Training
-            self.train_step = tf.train.AdamOptimizer().minimize(self.loss_total)
+            self.train_step = tf.compat.v1.train.AdamOptimizer().minimize(self.loss_total)
 
             # Initialiser for ... initialising
-            self.initialiser = tf.global_variables_initializer()
+            self.initialiser = tf.compat.v1.global_variables_initializer()
 
             # Saver for saving and restoring params
-            self.saver = tf.train.Saver(write_version=tf.train.SaverDef.V2)
+            self.saver = tf.compat.v1.train.Saver(write_version=tf.compat.v1.train.SaverDef.V2)
         self.log.debug("Finished constructing net in: " + str(time.time() - start))
 
     def destroy(self):
@@ -439,6 +439,11 @@ class NeuralNet():
             filenames when saving the neural nets. If set to None, then the
             default value for the SingleNeuralNet class will be used. Default
             None.
+        regularization_coefficient (Optional float): The initial value for the
+            coefficient used to weight the regularization cost when calculating
+            the total loss. If set to `None` then the default value of `1e-8`
+            will be used. Note that the coefficient's value will generally
+            change if `fit_hyperparameters` is set to `True`. Default `None`.
     '''
     _DEFAULT_NET_REG = 1e-8
 
@@ -446,7 +451,9 @@ class NeuralNet():
                  num_params = None,
                  fit_hyperparameters = False,
                  learner_archive_dir = None,
-                 start_datetime = None):
+                 start_datetime = None,
+                 regularization_coefficient=None,
+                 ):
 
         self.log = logging.getLogger(__name__)
         self.log.info('Initialising neural network impl')
@@ -465,7 +472,10 @@ class NeuralNet():
 
         # Variables for tracking the current state of hyperparameter fitting.
         self.last_hyperfit = 0
-        self.last_net_reg = self._DEFAULT_NET_REG
+        if regularization_coefficient is None:
+            self.last_net_reg = self._DEFAULT_NET_REG
+        else:
+            self.last_net_reg = regularization_coefficient
         self.regularization_history = [self.last_net_reg]
 
         # The samples used to fit the scalers. When set, this will be a tuple of
@@ -683,9 +693,6 @@ class NeuralNet():
                 cv_indices = indices[split_index:]
                 cv_params = all_params[cv_indices]
                 cv_costs = all_costs[cv_indices]
-
-                orig_cv_loss = self.net.cross_validation_loss(cv_params, cv_costs)
-                best_cv_loss = orig_cv_loss
 
                 # Try a bunch of different regularisation parameters, switching
                 # to a new one if it does better on the cross validation set

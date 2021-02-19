@@ -7,8 +7,16 @@ import multiprocessing as mp
 import mloop as ml
 
 from setuptools import setup, find_packages
+from os import path
 
 def main():
+    long_description = ''
+    here = path.abspath(path.dirname(__file__))
+    description_path = path.join(here, 'DESCRIPTION.rst')
+    if path.exists(description_path):
+        with open(description_path, 'rb') as stream:
+            long_description = stream.read().decode('utf8')
+
     setup(
         name = 'M-LOOP',
         version = ml.__version__,
@@ -27,7 +35,7 @@ def main():
                             'matplotlib>=1.5',
                             'pytest>=2.9',
                             'scikit-learn>=0.18',
-                            'tensorflow>=1.2.0'],
+                            'tensorflow>=2.0.0'],
         tests_require=['pytest','setuptools>=26'],
         
         package_data = {
@@ -37,10 +45,11 @@ def main():
         author = 'Michael R Hush',
         author_email = 'MichaelRHush@gmail.com',
         description = 'M-LOOP: Machine-learning online optimization package. A python package of automated optimization tools - enhanced with machine-learning - for quantum scientific experiments, computer controlled systems or other optimization tasks.',
+        long_description = long_description,
         license = 'MIT',
         keywords = 'automated machine learning optimization optimisation science experiment quantum',
         url = 'https://github.com/michaelhush/M-LOOP/', 
-        download_url = 'https://github.com/michaelhush/M-LOOP/tarball/v3.1.1',
+        download_url = 'https://github.com/michaelhush/M-LOOP/tarball/3.2.1',
     
         classifiers = ['Development Status :: 2 - Pre-Alpha',
                       'Intended Audience :: Science/Research',
